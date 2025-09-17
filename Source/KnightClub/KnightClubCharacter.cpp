@@ -53,6 +53,8 @@ AKnightClubCharacter::AKnightClubCharacter()
 	// Configure character movement
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 	GetCharacterMovement()->AirControl = 0.5f;
+
+	Tags.Add(FName("Player"));
 }
 
 void AKnightClubCharacter::BeginPlay()
@@ -79,6 +81,9 @@ void AKnightClubCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AKnightClubCharacter::LookInput);
 
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AKnightClubCharacter::DoAttack);
+
+		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Started, this, &AKnightClubCharacter::DoBlock);
+		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Completed, this, &AKnightClubCharacter::StopBlock);
 	}
 	else
 	{
@@ -109,15 +114,16 @@ void AKnightClubCharacter::LookInput(const FInputActionValue& Value)
 
 void AKnightClubCharacter::DoAim(float Yaw, float Pitch)
 {
-	// Do None for now
-	GetController()->LookAt();
+	// Automatic aim need to be implemented
 }
 
 void AKnightClubCharacter::SetSwordAngle_Implementation(float Yaw, float Pitch) {}
 
 void AKnightClubCharacter::DoAttack_Implementation() {}
+void AKnightClubCharacter::DoBlock_Implementation() {}
 
 void AKnightClubCharacter::StopAttack_Implementation() {}
+void AKnightClubCharacter::StopBlock_Implementation() {}
 
 void AKnightClubCharacter::DoMove(float Right, float Forward)
 {
@@ -154,12 +160,20 @@ void AKnightClubCharacter::OnSwordOverlapBegin(UPrimitiveComponent* OverlappedCo
 		return;
 	}
 
-	if (OtherCharacter->SwordState != ESwordState::Blocking)
+	if (OtherCharacter->SwordState == ESwordState::Blocking)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Hit with damage %s"), *OtherActor->GetName());
+		if (SwordPosition == ESwordPosition::Left && OtherCharacter->SwordPosition == ESwordPosition::Right ||
+			SwordPosition == ESwordPosition::Right && OtherCharacter->SwordPosition == ESwordPosition::Left ||
+			SwordPosition == ESwordPosition::Up && OtherCharacter->SwordPosition == ESwordPosition::Up
+			)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("blocked %s"), *OtherActor->GetName());
+
+			StopAttack();
+			return;
+		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Attack Blocked by %s"), *OtherActor->GetName());
-	}
+
+	UE_LOG(LogTemp, Warning, TEXT("ATTACKED %s"), *OtherActor->GetName());
+	StopAttack();
 }

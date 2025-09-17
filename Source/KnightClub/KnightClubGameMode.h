@@ -17,6 +17,12 @@ class AKnightClubGameMode : public AGameModeBase
 public:
 	AKnightClubGameMode();
 
+	void BeginPlay() override;
+
+	void Tick(float DeltaSeconds) override;
+
+protected:
+	TArray<class AActor*> TwoPlayers = {};
 
 };
 

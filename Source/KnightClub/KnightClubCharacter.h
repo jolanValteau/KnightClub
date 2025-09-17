@@ -77,6 +77,10 @@ protected:
 	/** Attack Sword Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Input")
 	class UInputAction* AttackAction;
+
+	/** Block Sword Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	class UInputAction* BlockAction;
 	
 public:
 	AKnightClubCharacter();
@@ -112,6 +116,12 @@ protected:
 
 	UFUNCTION(BlueprintNativeEvent, Category="Input")
 	void DoAttack();
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Input")
+	void DoBlock();
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Input")
+	void StopBlock();
 
 	UFUNCTION(BlueprintNativeEvent, Category="Input")
 	void StopAttack();
