@@ -16,6 +16,8 @@ class AKnightClubGameMode : public AGameModeBase
 
 public:
 	AKnightClubGameMode();
+
+
 };
 
 

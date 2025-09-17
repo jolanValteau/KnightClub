@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/BoxComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -27,6 +28,12 @@ AKnightClubCharacter::AKnightClubCharacter()
 	FirstPersonMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
 	FirstPersonMesh->SetCollisionProfileName(FName("NoCollision"));
 
+	SwordPivot = CreateDefaultSubobject<USceneComponent>(TEXT("Sword Pivot"));
+	SwordPivot->SetupAttachment(RootComponent, FName("SwordPivot"));
+
+	SwordCollider = CreateDefaultSubobject<UBoxComponent>(TEXT("Sword Collider"));
+	SwordCollider->SetupAttachment(SwordPivot, FName("Sword"));
+
 	// Create the Camera Component	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("First Person Camera"));
 	FirstPersonCameraComponent->SetupAttachment(FirstPersonMesh, FName("head"));
@@ -48,6 +55,13 @@ AKnightClubCharacter::AKnightClubCharacter()
 	GetCharacterMovement()->AirControl = 0.5f;
 }
 
+void AKnightClubCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SwordCollider->OnComponentBeginOverlap.AddDynamic(this, &AKnightClubCharacter::OnSwordOverlapBegin);
+}
+
 void AKnightClubCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {	
 	// Set up action bindings
@@ -63,6 +77,8 @@ void AKnightClubCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		// Looking/Aiming
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AKnightClubCharacter::LookInput);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AKnightClubCharacter::LookInput);
+
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AKnightClubCharacter::DoAttack);
 	}
 	else
 	{
@@ -87,19 +103,21 @@ void AKnightClubCharacter::LookInput(const FInputActionValue& Value)
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
 	// pass the axis values to the aim input
-	DoAim(LookAxisVector.X, LookAxisVector.Y);
+	SetSwordAngle(LookAxisVector.X, LookAxisVector.Y);
 
 }
 
 void AKnightClubCharacter::DoAim(float Yaw, float Pitch)
 {
-	if (GetController())
-	{
-		// pass the rotation inputs
-		AddControllerYawInput(Yaw);
-		AddControllerPitchInput(Pitch);
-	}
+	// Do None for now
+	GetController()->LookAt();
 }
+
+void AKnightClubCharacter::SetSwordAngle_Implementation(float Yaw, float Pitch) {}
+
+void AKnightClubCharacter::DoAttack_Implementation() {}
+
+void AKnightClubCharacter::StopAttack_Implementation() {}
 
 void AKnightClubCharacter::DoMove(float Right, float Forward)
 {
@@ -121,4 +139,27 @@ void AKnightClubCharacter::DoJumpEnd()
 {
 	// pass StopJumping to the character
 	StopJumping();
+}
+
+void AKnightClubCharacter::OnSwordOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (SwordState != ESwordState::Attacking)
+	{
+		return;
+	}
+
+	AKnightClubCharacter* OtherCharacter = Cast<AKnightClubCharacter>(OtherActor);
+	if (!OtherCharacter || OtherCharacter == this)
+	{
+		return;
+	}
+
+	if (OtherCharacter->SwordState != ESwordState::Blocking)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Hit with damage %s"), *OtherActor->GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Attack Blocked by %s"), *OtherActor->GetName());
+	}
 }
